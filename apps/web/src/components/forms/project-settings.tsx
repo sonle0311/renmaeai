@@ -188,7 +188,9 @@ export function ProjectSettingsForm({
                                 onValueChange={v => updateField("language", v)}
                             >
                                 <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue>
+                                        {LANGUAGES.find(l => l.code === (settings.language || "vi"))?.label}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {LANGUAGES.map(l => (
@@ -205,7 +207,11 @@ export function ProjectSettingsForm({
                                 onValueChange={v => updateField("sourceLanguage", v === "auto" ? "" : v)}
                             >
                                 <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue>
+                                        {!settings.sourceLanguage || settings.sourceLanguage === "auto"
+                                            ? "🔄 Tự phát hiện"
+                                            : LANGUAGES.find(l => l.code === settings.sourceLanguage)?.label}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="auto">🔄 Tự phát hiện</SelectItem>
