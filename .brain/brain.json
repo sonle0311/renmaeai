@@ -1,0 +1,75 @@
+{
+    "meta": {
+        "schema_version": "1.1.0",
+        "awf_version": "4.0.2"
+    },
+    "project": {
+        "name": "RenmaeAI v2",
+        "type": "SaaS Web Platform",
+        "status": "Planning & Brainstorming"
+    },
+    "tech_stack": {
+        "frontend": {
+            "framework": "Next.js 15 (App Router)",
+            "styling": "TailwindCSS + Shadcn/UI",
+            "tools": "JSZip, FFmpeg.wasm for Browser Muxing"
+        },
+        "backend": {
+            "framework": "NestJS 11",
+            "orm": "Prisma",
+            "realtime": "Socket.IO",
+            "queue": "BullMQ + Redis"
+        },
+        "database": {
+            "type": "PostgreSQL 15"
+        },
+        "devops": {
+            "monorepo": "Turborepo",
+            "deployment": "Docker Compose Self-Hosted (VPS)"
+        }
+    },
+    "database_schema": {
+        "summary": "Quản lý User, Dự án (Projects), Video (Productions) và Tracking tiến độ công việc (PipelineCheckpoints).",
+        "tables": [
+            "users",
+            "projects",
+            "productions",
+            "pipeline_checkpoints",
+            "audit_logs"
+        ],
+        "relationships": "1 User -> Nhiều Projects. 1 Project -> Nhiều Productions. 1 Production -> 7 PipelineCheckpoints."
+    },
+    "api_endpoints": [
+        {
+            "path": "/api/v1/projects",
+            "explained": "Khởi tạo thư mục dự án trên DB"
+        },
+        {
+            "path": "/api/v1/productions",
+            "explained": "Gửi yêu cầu Gen Video/Script"
+        },
+        {
+            "path": "/api/v1/webhooks/flow2api",
+            "explained": "Trạm nhận kết quả trả về từ G-Labs (Báo Socket hoàn thành)"
+        }
+    ],
+    "features": [
+        "Dán G-Labs Token cá nhân vào cài đặt (BYOK)",
+        "Dựng video trên Trình duyệt bằng card đồ hoạ người dùng (ffmpeg.wasm)",
+        "Giao diện Kanban Board kéo thả tracking 7 cột",
+        "Trừ Virtual Quota (Số Video, Lập giới hạn Slot chạy đồng thời)"
+    ],
+    "knowledge_items": {
+        "patterns": [
+            "Trình quay vòng BullMQ Job",
+            "Tự sinh code gốc bằng CLI của NextJS/NestJS (Không dùng Boilerplate OpenSource rác)"
+        ],
+        "gotchas": [
+            "Cấu trúc Headers bắt buộc cho Next.js để WebAssembly hoạt động (Cross-Origin-Opener-Policy)"
+        ],
+        "conventions": [
+            "Lưu Session vào Prisma qua NextAuth",
+            "Strict Mode Typescript trên Turborepo package"
+        ]
+    }
+}

@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================
+// 👤 USER (Mở rộng từ NextAuth User)
+// =====================================
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  role          Role      @default(USER)
+
+  // === BYOK Settings ===
+  aiSettings Json? @map("ai_settings")
+
+  // === Virtual Quota ===
+  subscriptionTier   SubscriptionTier @default(FREE) @map("subscription_tier")
+  monthlyVideoQuota  Int              @default(1) @map("monthly_video_quota")
+  monthlyMinuteQuota Int              @default(5) @map("monthly_minute_quota")
+  usedVideoCount     Int              @default(0) @map("used_video_count")
+  usedMinuteCount    Float            @default(0) @map("used_minute_count")
+  maxConcurrentSlots Int              @default(1) @map("max_concurrent_slots")
+
+  // === Polar.sh Subscription ===
+  polarCustomerId     String? @unique @map("polar_customer_id")
+  polarSubscriptionId String? @map("polar_subscription_id")
+  subscriptionStatus  String? @default("inactive") @map("subscription_status")
+
+  // === Single Session Enforcement ===
+  activeSessionToken String? @map("active_session_token")
+
+  // === Timestamps ===
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // === Relations ===
+  accounts  Account[]
+  sessions  Session[]
+  projects  Project[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  BUSINESS
+}
+
+// =====================================
+// 🔐 NEXTAUTH TABLES
+// =====================================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// =====================================
+// 📁 PROJECT
+// =====================================
+model Project {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  name           String
+  description    String?
+  globalSettings Json?    @map("global_settings")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productions Production[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+// =====================================
+// 🎬 PRODUCTION
+// =====================================
+model Production {
+  id              String           @id @default(cuid())
+  projectId       String           @map("project_id")
+  title           String
+  status          ProductionStatus @default(DRAFT)
+  currentStep     Int              @default(0) @map("current_step")
+  mediaGeneration Boolean          @default(true) @map("media_generation")
+
+  inputScript      String? @db.Text @map("input_script")
+  youtubeUrl       String? @map("youtube_url")
+  language         String  @default("vi")
+  outputData       Json?   @map("output_data")
+  estimatedMinutes Float?  @map("estimated_minutes")
+  errorMessage     String? @map("error_message")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  checkpoints PipelineCheckpoint[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("productions")
+}
+
+enum ProductionStatus {
+  DRAFT
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// =====================================
+// ⏱️ PIPELINE CHECKPOINT
+// =====================================
+model PipelineCheckpoint {
+  id           String           @id @default(cuid())
+  productionId String           @map("production_id")
+  stepNumber   Int              @map("step_number")
+  stepName     String           @map("step_name")
+  status       CheckpointStatus @default(PENDING)
+  outputData   Json?            @map("output_data")
+  errorMessage String?          @map("error_message")
+  startedAt    DateTime?        @map("started_at")
+  completedAt  DateTime?        @map("completed_at")
+
+  production Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+
+  @@unique([productionId, stepNumber])
+  @@index([productionId])
+  @@map("pipeline_checkpoints")
+}
+
+enum CheckpointStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  ERROR
+  SKIPPED
+}
+
+// =====================================
+// 📋 AUDIT LOG
+// =====================================
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  @map("user_id")
+  action      String
+  description String
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

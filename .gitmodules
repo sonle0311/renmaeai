@@ -1,0 +1,3 @@
+[submodule "docs/renmaeai"]
+	path = docs/renmaeai
+	url = https://github.com/baophamvuquoc-cmyk/renmaeai.git
