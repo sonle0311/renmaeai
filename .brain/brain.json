@@ -1,75 +1,379 @@
 {
     "meta": {
         "schema_version": "1.1.0",
-        "awf_version": "4.0.2"
+        "awf_version": "4.0.2",
+        "last_updated": "2026-03-09T11:03:00+07:00"
     },
     "project": {
         "name": "RenmaeAI v2",
-        "type": "SaaS Web Platform",
-        "status": "Planning & Brainstorming"
+        "type": "SaaS Web App (AI Video Production)",
+        "status": "pipeline_overhaul_complete",
+        "description": "Platform sản xuất video AI tự động. User nhập script/YouTube URL → hệ thống gen script, voice, visual → mux video. BYOK model (G-Labs, ElevenLabs). Client-side FFmpeg assembly.",
+        "repo": "d:/projects/renmaeai"
     },
     "tech_stack": {
+        "monorepo": "Turborepo (npm workspaces)",
         "frontend": {
-            "framework": "Next.js 15 (App Router)",
-            "styling": "TailwindCSS + Shadcn/UI",
-            "tools": "JSZip, FFmpeg.wasm for Browser Muxing"
+            "framework": "Next.js 15 (App Router, TypeScript)",
+            "auth": "NextAuth.js v5 (Auth.js) + PrismaAdapter + Google OAuth",
+            "ui": "TailwindCSS + custom components (Shadcn-style dark mode)",
+            "realtime": "socket.io-client",
+            "drag_drop": "@dnd-kit/core + @dnd-kit/sortable",
+            "video_processing": "@ffmpeg/ffmpeg + @ffmpeg/util (WebAssembly, client-side)",
+            "packaging": "JSZip + file-saver"
         },
         "backend": {
-            "framework": "NestJS 11",
-            "orm": "Prisma",
-            "realtime": "Socket.IO",
-            "queue": "BullMQ + Redis"
+            "framework": "NestJS 11 (TypeScript, strict mode)",
+            "queue": "BullMQ (Redis-backed)",
+            "auth": "Custom JwtAuthGuard (verify via NextAuth session endpoint)",
+            "realtime": "@nestjs/platform-socket.io + @nestjs/websockets",
+            "rate_limiting": "@nestjs/throttler (100 req/60s global)",
+            "config": "@nestjs/config (global)"
         },
         "database": {
-            "type": "PostgreSQL 15"
+            "primary": "PostgreSQL 15 (Docker, port 5433 host → 5432 container)",
+            "cache_queue": "Redis 7 (Docker, port 6379)",
+            "orm": "Prisma v6.19.2 (@renmaeai/database workspace package)"
         },
-        "devops": {
-            "monorepo": "Turborepo",
-            "deployment": "Docker Compose Self-Hosted (VPS)"
+        "deployment": {
+            "containerization": "Docker multi-stage (node:20-alpine)",
+            "orchestration": "docker-compose.prod.yml (5 services)",
+            "reverse_proxy": "Caddy 2 (auto-HTTPS Let's Encrypt)",
+            "target": "Self-hosted VPS (Ubuntu)"
         }
     },
     "database_schema": {
-        "summary": "Quản lý User, Dự án (Projects), Video (Productions) và Tracking tiến độ công việc (PipelineCheckpoints).",
+        "summary": "8 models: User (auth+quota+BYOK), Account/Session/VerificationToken (NextAuth), Project (nhóm video), Production (1 video job), PipelineCheckpoint (13 bước xử lý), AuditLog (ghi lại mọi hành động)",
         "tables": [
-            "users",
-            "projects",
-            "productions",
-            "pipeline_checkpoints",
-            "audit_logs"
+            {
+                "name": "User",
+                "key_fields": [
+                    "email",
+                    "role",
+                    "subscriptionTier",
+                    "aiSettings(JSON)",
+                    "usedVideoCount",
+                    "monthlyVideoQuota",
+                    "usedMinuteCount",
+                    "monthlyMinuteQuota",
+                    "maxConcurrentSlots",
+                    "polarCustomerId"
+                ]
+            },
+            {
+                "name": "Account",
+                "purpose": "NextAuth OAuth provider accounts"
+            },
+            {
+                "name": "Session",
+                "purpose": "NextAuth database sessions"
+            },
+            {
+                "name": "VerificationToken",
+                "purpose": "NextAuth email verification"
+            },
+            {
+                "name": "Project",
+                "key_fields": [
+                    "userId",
+                    "name",
+                    "globalSettings(JSON)"
+                ]
+            },
+            {
+                "name": "Production",
+                "key_fields": [
+                    "projectId",
+                    "title",
+                    "status(DRAFT|QUEUED|PROCESSING|COMPLETED|FAILED)",
+                    "currentStep",
+                    "inputScript",
+                    "youtubeUrl",
+                    "language",
+                    "mediaGeneration",
+                    "estimatedMinutes"
+                ]
+            },
+            {
+                "name": "PipelineCheckpoint",
+                "key_fields": [
+                    "productionId",
+                    "stepNumber(1-13)",
+                    "stepName",
+                    "status",
+                    "outputData(JSON)"
+                ]
+            },
+            {
+                "name": "AuditLog",
+                "key_fields": [
+                    "userId",
+                    "action",
+                    "description",
+                    "metadata(JSON)"
+                ]
+            }
         ],
-        "relationships": "1 User -> Nhiều Projects. 1 Project -> Nhiều Productions. 1 Production -> 7 PipelineCheckpoints."
+        "relationships": "User→Projects (1:N), Project→Productions (1:N), Production→PipelineCheckpoints (1:N), User→AuditLogs (1:N)"
     },
     "api_endpoints": [
         {
+            "method": "GET",
             "path": "/api/v1/projects",
-            "explained": "Khởi tạo thư mục dự án trên DB"
+            "auth": true,
+            "explained": "Danh sách dự án của user"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/projects",
+            "auth": true,
+            "explained": "Tạo dự án mới"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/projects/:id",
+            "auth": true,
+            "explained": "Cập nhật dự án"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/projects/:id",
+            "auth": true,
+            "explained": "Xoá dự án"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/projects/:projectId/productions",
+            "auth": true,
+            "explained": "Danh sách video trong dự án"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/productions/:id",
+            "auth": true,
+            "explained": "Chi tiết video + checkpoints"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/productions",
-            "explained": "Gửi yêu cầu Gen Video/Script"
+            "auth": true,
+            "explained": "Tạo video mới → trừ quota → đẩy BullMQ (trả 202)"
         },
         {
-            "path": "/api/v1/webhooks/flow2api",
-            "explained": "Trạm nhận kết quả trả về từ G-Labs (Báo Socket hoàn thành)"
+            "method": "POST",
+            "path": "/api/v1/webhooks/glabs",
+            "auth": "webhook_secret",
+            "explained": "Callback từ G-Labs khi gen xong → cập nhật checkpoint + emit Socket.IO"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/webhooks/polar",
+            "auth": "signature",
+            "explained": "Subscription events từ Polar.sh → upgrade/downgrade tier"
         }
     ],
+    "socket_events": [
+        {
+            "event": "pipeline:step:started",
+            "direction": "server→client",
+            "data": "productionId, stepNumber, stepName"
+        },
+        {
+            "event": "pipeline:step:completed",
+            "direction": "server→client",
+            "data": "productionId, stepNumber"
+        },
+        {
+            "event": "pipeline:step:failed",
+            "direction": "server→client",
+            "data": "productionId, error"
+        },
+        {
+            "event": "pipeline:completed",
+            "direction": "server→client",
+            "data": "productionId"
+        },
+        {
+            "event": "quota:updated",
+            "direction": "server→client",
+            "data": "productionId"
+        }
+    ],
+    "pipeline_steps": [
+        {
+            "step": 1,
+            "name": "YouTube Extract",
+            "type": "local",
+            "phase": "A-Input"
+        },
+        {
+            "step": 2,
+            "name": "Style Analysis",
+            "type": "local",
+            "phase": "A-Input"
+        },
+        {
+            "step": 3,
+            "name": "Script Generation",
+            "type": "AI (Gemini)",
+            "phase": "A-Input"
+        },
+        {
+            "step": 4,
+            "name": "Scene Splitting",
+            "type": "local (algorithm)",
+            "phase": "A-Input"
+        },
+        {
+            "step": 5,
+            "name": "AI Director (Concept Analysis)",
+            "type": "AI (Gemini), non-blocking",
+            "phase": "A-Input"
+        },
+        {
+            "step": 6,
+            "name": "Voice TTS",
+            "type": "external (Edge-TTS), builds 8s video segments",
+            "phase": "B-Audio"
+        },
+        {
+            "step": 7,
+            "name": "Video Direction (6 Pillars)",
+            "type": "AI (Gemini), batched",
+            "phase": "C-Visual"
+        },
+        {
+            "step": 8,
+            "name": "VEO Prompts (4 modes: T2V/I2V/F&LF/SB)",
+            "type": "AI (Gemini)",
+            "phase": "C-Visual"
+        },
+        {
+            "step": 9,
+            "name": "Entity Extraction",
+            "type": "AI (Gemini)",
+            "phase": "C-Visual"
+        },
+        {
+            "step": 10,
+            "name": "Reference Image Prompts",
+            "type": "AI (Gemini)",
+            "phase": "C-Visual"
+        },
+        {
+            "step": 11,
+            "name": "Scene Builder Prompts",
+            "type": "AI (Gemini), batched",
+            "phase": "C-Visual"
+        },
+        {
+            "step": 12,
+            "name": "Metadata & SEO",
+            "type": "placeholder",
+            "phase": "D-Finalize"
+        },
+        {
+            "step": 13,
+            "name": "Finalize",
+            "type": "local",
+            "phase": "D-Finalize"
+        }
+    ],
+    "business_rules": [
+        "BYOK model: User nhập token G-Labs/ElevenLabs riêng, lưu JSON trong aiSettings",
+        "Virtual Quota: FREE=1 video/5 phút/tháng, PRO=60/600, BUSINESS=250/5000",
+        "Concurrent Slots: FREE=1, PRO=3, BUSINESS=10",
+        "Trừ video quota khi tạo Production (trước khi xử lý), trừ minute quota khi hoàn tất",
+        "Single-session login enforcement (qua NextAuth database sessions)",
+        "Admin RBAC: chỉ role=ADMIN mới truy cập /admin/*"
+    ],
     "features": [
-        "Dán G-Labs Token cá nhân vào cài đặt (BYOK)",
-        "Dựng video trên Trình duyệt bằng card đồ hoạ người dùng (ffmpeg.wasm)",
-        "Giao diện Kanban Board kéo thả tracking 7 cột",
-        "Trừ Virtual Quota (Số Video, Lập giới hạn Slot chạy đồng thời)"
+        {
+            "name": "Google OAuth Login",
+            "status": "implemented",
+            "phase": 2
+        },
+        {
+            "name": "BYOK Token Settings",
+            "status": "implemented",
+            "phase": 2
+        },
+        {
+            "name": "Project CRUD",
+            "status": "implemented",
+            "phase": 3
+        },
+        {
+            "name": "Production Create + Queue",
+            "status": "implemented",
+            "phase": 3
+        },
+        {
+            "name": "13-Step Pipeline Worker (Full V1 Parity)",
+            "status": "implemented",
+            "phase": 3,
+            "details": "Phase A (Input 1-5) → Phase B (Audio 6) → Phase C (Visual 7-11) → Phase D (Finalize 12-13). 6 new services: ConceptAnalysis, VideoDirection, EntityExtraction, ReferencePrompt, SceneBuilderPrompt, VideoSegment."
+        },
+        {
+            "name": "G-Labs Webhook Handler",
+            "status": "implemented",
+            "phase": 3
+        },
+        {
+            "name": "Polar.sh Subscription Webhook",
+            "status": "implemented",
+            "phase": 3
+        },
+        {
+            "name": "Socket.IO Realtime Events",
+            "status": "implemented",
+            "phase": 3
+        },
+        {
+            "name": "Kanban Board (5 columns, realtime)",
+            "status": "implemented",
+            "phase": 4
+        },
+        {
+            "name": "Admin Audit Logs (paginated, filterable)",
+            "status": "implemented",
+            "phase": 4
+        },
+        {
+            "name": "FFmpeg.wasm Client Mux",
+            "status": "implemented",
+            "phase": 5
+        },
+        {
+            "name": "JSZip Multi-scene Export",
+            "status": "implemented",
+            "phase": 5
+        },
+        {
+            "name": "Docker Production Deploy",
+            "status": "ready (not deployed)",
+            "phase": 6
+        }
     ],
     "knowledge_items": {
-        "patterns": [
-            "Trình quay vòng BullMQ Job",
-            "Tự sinh code gốc bằng CLI của NextJS/NestJS (Không dùng Boilerplate OpenSource rác)"
-        ],
         "gotchas": [
-            "Cấu trúc Headers bắt buộc cho Next.js để WebAssembly hoạt động (Cross-Origin-Opener-Policy)"
+            "Port 5432 xung đột với Postgres local → đổi sang 5433 trong docker-compose và .env",
+            "Prisma cần .env trong cùng folder schema.prisma → copy .env vào packages/database/",
+            "FFmpeg WASM cần COOP/COEP headers (Cross-Origin-Opener-Policy: same-origin, Cross-Origin-Embedder-Policy: require-corp)",
+            "Next.js standalone output cần transpilePackages cho monorepo packages",
+            "Uint8Array từ FFmpeg output cần cast qua unknown as BlobPart cho TS strict",
+            "@bestcodes/edge-tts là ESM-only (chỉ có dist/index.mjs, không có main/exports). Trong NestJS CJS context: dùng createRequire(__filename) → resolve package.json path → pathToFileURL(dist/index.mjs) → dynamic import()",
+            "@bestcodes/edge-tts rate/volume/pitch phải có dấu +/- trước số: '+0%', '+10%', '-20%', '+0Hz' (KHÔNG dùng '0%' hay '0Hz')"
         ],
         "conventions": [
-            "Lưu Session vào Prisma qua NextAuth",
-            "Strict Mode Typescript trên Turborepo package"
+            "Monorepo: apps/web (Next.js), apps/api (NestJS), packages/database (Prisma)",
+            "API prefix: /api/v1/",
+            "Socket.IO rooms: user:{userId}",
+            "BullMQ queue name: pipeline",
+            "Route groups: (app) cho authenticated pages",
+            "Pipeline constants in pipeline.constants.ts (single source of truth for step numbers, names, VEO modes)",
+            "Pipeline types in pipeline.types.ts (all service I/O interfaces)",
+            "V1 reference code as git submodule at docs/renmaeai/"
         ]
     }
 }

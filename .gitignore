@@ -23,6 +23,15 @@ Thumbs.db
 # Brain (local session)
 .brain/session.json
 .brain/session_log.txt
+.brain/handover.md
+
+# AWF local config
+.agents/
+.agent/
+
+# Uploads (user data)
+uploads/
+apps/api/uploads/
 
 # Prisma
 packages/database/prisma/migrations/

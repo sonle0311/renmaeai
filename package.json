@@ -16,11 +16,14 @@
         "db:migrate": "turbo db:migrate"
     },
     "devDependencies": {
-        "turbo": "^2",
-        "prettier": "^3"
+        "prettier": "^3",
+        "turbo": "^2"
     },
     "engines": {
         "node": ">=20"
     },
-    "packageManager": "npm@11.8.0"
+    "packageManager": "npm@11.8.0",
+    "dependencies": {
+        "youtube-transcript-plus": "^1.2.0"
+    }
 }

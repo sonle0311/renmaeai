@@ -1,0 +1,25 @@
+# ============================================
+# RenmaeAI v2 - Caddyfile (Reverse Proxy + Auto HTTPS)
+# ============================================
+# Thay {$DOMAIN} và {$API_DOMAIN} bằng domain thực, hoặc dùng env vars
+
+{$DOMAIN:app.renmae.ai} {
+	# Cross-Origin headers cho FFmpeg.wasm SharedArrayBuffer
+	header Cross-Origin-Opener-Policy "same-origin"
+	header Cross-Origin-Embedder-Policy "require-corp"
+
+	# Security headers
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+
+	reverse_proxy web:3000
+}
+
+{$API_DOMAIN:api.renmae.ai} {
+	# Security headers
+	header X-Content-Type-Options "nosniff"
+
+	# Rate limiting via Caddy (bổ sung thêm ngoài NestJS Throttler)
+	reverse_proxy api:4000
+}
