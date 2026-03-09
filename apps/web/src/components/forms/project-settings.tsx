@@ -244,7 +244,9 @@ export function ProjectSettingsForm({
                                 onValueChange={v => updateField("narrativeVoice", v)}
                             >
                                 <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue>
+                                        {NARRATIVE_VOICES.find(nv => nv.value === (settings.narrativeVoice || "first_person"))?.label}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {NARRATIVE_VOICES.map(nv => (
@@ -261,7 +263,11 @@ export function ProjectSettingsForm({
                                 onValueChange={v => updateField("storytellingStyle", v)}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Chọn phong cách" />
+                                    <SelectValue>
+                                        {settings.storytellingStyle
+                                            ? STORYTELLING_STYLES.find(s => s.value === settings.storytellingStyle)?.label
+                                            : "Chọn phong cách"}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {STORYTELLING_STYLES.map(s => (
@@ -309,22 +315,22 @@ export function ProjectSettingsForm({
                     <CardDescription>Chế độ tạo video và phong cách visual cho pipeline</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Chế độ VEO</Label>
                             <Select
                                 value={settings.veoMode || "scenebuilder"}
                                 onValueChange={v => updateField("veoMode", v)}
                             >
-                                <SelectTrigger>
-                                    <SelectValue />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue>
+                                        {VEO_MODES.find(m => m.value === (settings.veoMode || "scenebuilder"))?.label}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {VEO_MODES.map(m => (
                                         <SelectItem key={m.value} value={m.value}>
-                                            <div className="flex flex-col">
-                                                <span>{m.label}</span>
-                                            </div>
+                                            {m.label}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -340,15 +346,15 @@ export function ProjectSettingsForm({
                                 value={settings.imagePromptMode || "reference"}
                                 onValueChange={v => updateField("imagePromptMode", v)}
                             >
-                                <SelectTrigger>
-                                    <SelectValue />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue>
+                                        {IMAGE_PROMPT_MODES.find(m => m.value === (settings.imagePromptMode || "reference"))?.label}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {IMAGE_PROMPT_MODES.map(m => (
                                         <SelectItem key={m.value} value={m.value}>
-                                            <div className="flex flex-col">
-                                                <span>{m.label}</span>
-                                            </div>
+                                            {m.label}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
