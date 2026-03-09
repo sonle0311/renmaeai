@@ -276,13 +276,13 @@ export function ProjectWorkspace({
                                                 </span>
                                                 {prod.status === "PROCESSING" && (
                                                     <span className="text-xs text-muted-foreground">
-                                                        Step {prod.currentStep}/7
+                                                        Step {prod.currentStep}/13
                                                     </span>
                                                 )}
                                             </div>
                                             {prod.status === "PROCESSING" && (
                                                 <Progress
-                                                    value={(prod.currentStep / 7) * 100}
+                                                    value={(prod.currentStep / 13) * 100}
                                                     className="mt-1.5 h-1"
                                                 />
                                             )}

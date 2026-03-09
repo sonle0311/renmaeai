@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Save, Sparkles } from "lucide-react";
+import { Loader2, Save, Sparkles, Video, Paintbrush } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,47 @@ const STORYTELLING_STYLES = [
     { value: "narrative", label: "📖 Kể chuyện (Narrative)" },
 ];
 
+const VEO_MODES = [
+    {
+        value: "scenebuilder",
+        label: "🎨 Scene Builder",
+        description: "AI xây dựng từng scene chi tiết với nhân vật + bối cảnh (Mặc định)",
+    },
+    {
+        value: "text_to_video",
+        label: "🎬 Text to Video",
+        description: "AI tạo video hoàn toàn từ mô tả văn bản",
+    },
+    {
+        value: "ingredients_to_video",
+        label: "🧩 Ingredients to Video",
+        description: "Kết hợp ảnh reference + text để tạo video",
+    },
+    {
+        value: "first_last_frame",
+        label: "🖼️ First & Last Frame",
+        description: "Chỉ định frame đầu/cuối, AI tạo video chuyển động giữa",
+    },
+];
+
+const IMAGE_PROMPT_MODES = [
+    {
+        value: "reference",
+        label: "📸 Reference",
+        description: "Tạo ảnh tham chiếu cho nhân vật/bối cảnh",
+    },
+    {
+        value: "scene_builder",
+        label: "🏗️ Scene Builder",
+        description: "Xây dựng scene từ entities đã trích xuất",
+    },
+    {
+        value: "concept",
+        label: "💡 Concept Art",
+        description: "Tạo concept art cho visual direction",
+    },
+];
+
 interface ProjectSettings {
     language?: string;
     sourceLanguage?: string;
@@ -62,6 +103,12 @@ interface ProjectSettings {
     country?: string;
     addQuiz?: boolean;
     valueType?: string;
+    // Video AI settings
+    veoMode?: string;
+    imagePromptMode?: string;
+    visualTheme?: string;
+    mainCharacter?: string;
+    environmentDescription?: string;
 }
 
 export function ProjectSettingsForm({
@@ -247,6 +294,114 @@ export function ProjectSettingsForm({
                         />
                         <p className="text-xs text-muted-foreground">
                             800 từ ≈ 3-4 phút video. 1500 từ ≈ 6-8 phút video.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Video AI Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                        <Video className="h-4 w-4 text-purple-500" />
+                        Cài đặt Video AI
+                    </CardTitle>
+                    <CardDescription>Chế độ tạo video và phong cách visual cho pipeline</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Chế độ VEO</Label>
+                            <Select
+                                value={settings.veoMode || "scenebuilder"}
+                                onValueChange={v => updateField("veoMode", v)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {VEO_MODES.map(m => (
+                                        <SelectItem key={m.value} value={m.value}>
+                                            <div className="flex flex-col">
+                                                <span>{m.label}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                {VEO_MODES.find(m => m.value === (settings.veoMode || "scenebuilder"))?.description}
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Image Prompt Mode</Label>
+                            <Select
+                                value={settings.imagePromptMode || "reference"}
+                                onValueChange={v => updateField("imagePromptMode", v)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {IMAGE_PROMPT_MODES.map(m => (
+                                        <SelectItem key={m.value} value={m.value}>
+                                            <div className="flex flex-col">
+                                                <span>{m.label}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                {IMAGE_PROMPT_MODES.find(m => m.value === (settings.imagePromptMode || "reference"))?.description}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="visualTheme" className="flex items-center gap-2">
+                            <Paintbrush className="h-3.5 w-3.5 text-pink-500" />
+                            Visual Theme
+                        </Label>
+                        <Input
+                            id="visualTheme"
+                            value={settings.visualTheme || ""}
+                            onChange={e => updateField("visualTheme", e.target.value)}
+                            placeholder="VD: cinematic, warm lighting, 4K"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Phong cách visual chung cho tất cả prompt video/ảnh
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="mainCharacter">Nhân vật chính</Label>
+                        <Textarea
+                            id="mainCharacter"
+                            value={settings.mainCharacter || ""}
+                            onChange={e => updateField("mainCharacter", e.target.value)}
+                            rows={2}
+                            placeholder="VD: Một cô gái Việt Nam 25 tuổi, tóc dài đen, mặc áo dài trắng..."
+                            className="resize-none text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Mô tả nhân vật chính — AI sẽ giữ nhất quán qua các scene
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="environmentDescription">Bối cảnh / Môi trường</Label>
+                        <Textarea
+                            id="environmentDescription"
+                            value={settings.environmentDescription || ""}
+                            onChange={e => updateField("environmentDescription", e.target.value)}
+                            rows={2}
+                            placeholder="VD: Phố cổ Hội An vào buổi chiều tà, đèn lồng đỏ..."
+                            className="resize-none text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Bối cảnh chung — AI sẽ dùng cho Video Direction và VEO Prompts
                         </p>
                     </div>
                 </CardContent>
