@@ -27,6 +27,7 @@ import { ReferencePromptService } from "../pipeline/reference-prompt.service";
 import { SceneBuilderPromptService } from "../pipeline/scene-builder-prompt.service";
 import { VideoSegmentService } from "../pipeline/video-segment.service";
 import type { UserAISettings } from "../ai/ai-client.types";
+import { AiClientService } from "../ai/ai-client.service";
 import type { ScriptPipelineInput, StyleA } from "../pipeline/script-engine.types";
 import type {
     PipelineJobData,
@@ -56,6 +57,7 @@ export class PipelineProcessor extends WorkerHost {
         private referencePrompt: ReferencePromptService,
         private sceneBuilderPrompt: SceneBuilderPromptService,
         private videoSegment: VideoSegmentService,
+        private aiClientService: AiClientService,
     ) {
         super();
     }
@@ -70,15 +72,18 @@ export class PipelineProcessor extends WorkerHost {
                 data: { status: "PROCESSING" },
             });
 
-            const user = await this.prisma.user.findUniqueOrThrow({
-                where: { id: userId },
-            });
+            // Fetch user (only needed fields) and production in parallel
+            const [user, production] = await Promise.all([
+                this.prisma.user.findUniqueOrThrow({
+                    where: { id: userId },
+                    select: { aiSettings: true, role: true },
+                }),
+                this.prisma.production.findUniqueOrThrow({
+                    where: { id: productionId },
+                    include: { project: { select: { globalSettings: true } } },
+                }),
+            ]);
             const aiSettings = (user.aiSettings || {}) as unknown as UserAISettings;
-
-            const production = await this.prisma.production.findUniqueOrThrow({
-                where: { id: productionId },
-                include: { project: true },
-            });
 
             const projectSettings = (production.project.globalSettings || {}) as unknown as ProjectSettings;
             let outputData = (production.outputData || {}) as unknown as ProductionOutputData;
@@ -113,10 +118,7 @@ export class PipelineProcessor extends WorkerHost {
                     stepName: checkpoint.stepName,
                 });
 
-                await this.prisma.production.update({
-                    where: { id: productionId },
-                    data: { currentStep: checkpoint.stepNumber },
-                });
+                // currentStep now updated inline with outputData in transaction below
 
                 try {
                     // Process this step
@@ -125,15 +127,18 @@ export class PipelineProcessor extends WorkerHost {
                         aiSettings, projectSettings, outputData, production,
                     );
 
-                    await this.prisma.production.update({
-                        where: { id: productionId },
-                        data: { outputData: outputData as object },
-                    });
-
-                    await this.prisma.pipelineCheckpoint.update({
-                        where: { id: checkpoint.id },
-                        data: { status: "SUCCESS", completedAt: new Date() },
-                    });
+                    // ⚡ PERF: Merge outputData + checkpoint update into single transaction
+                    // Avoids separate production.update(outputData) per step (was 13x writes)
+                    await this.prisma.$transaction([
+                        this.prisma.production.update({
+                            where: { id: productionId },
+                            data: { outputData: outputData as object, currentStep: checkpoint.stepNumber },
+                        }),
+                        this.prisma.pipelineCheckpoint.update({
+                            where: { id: checkpoint.id },
+                            data: { status: "SUCCESS", completedAt: new Date() },
+                        }),
+                    ]);
 
                     this.realtimeGateway.emitToUser(userId, "pipeline:step:completed", {
                         productionId,
@@ -179,6 +184,34 @@ export class PipelineProcessor extends WorkerHost {
                 where: { id: productionId },
                 data: { status: "FAILED", errorMessage: error.message },
             });
+
+            // Refund video quota for non-admin users
+            try {
+                const user = await this.prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { role: true, usedVideoCount: true },
+                });
+                if (user && user.role !== "ADMIN" && user.usedVideoCount > 0) {
+                    await this.prisma.$transaction(async (tx) => {
+                        await tx.user.update({
+                            where: { id: userId },
+                            data: { usedVideoCount: { decrement: 1 } },
+                        });
+                        await tx.auditLog.create({
+                            data: {
+                                userId,
+                                action: "refund_quota",
+                                description: `Hoàn trả 1 video do pipeline lỗi (Production ${productionId})`,
+                                metadata: { productionId, error: error.message?.substring(0, 200) },
+                            },
+                        });
+                    });
+                    this.logger.log(`[${productionId}] Refunded 1 video quota for user ${userId}`);
+                }
+            } catch (refundErr) {
+                this.logger.error(`[${productionId}] Failed to refund quota: ${refundErr.message}`);
+            }
+
             this.realtimeGateway.emitToUser(userId, "pipeline:step:failed", {
                 productionId, error: error.message,
             });
@@ -196,16 +229,21 @@ export class PipelineProcessor extends WorkerHost {
                     scriptSource: outputData.scriptSource,
                     youtubeMetadata: outputData.youtubeMetadata,
                     workingScriptLength: outputData.workingScript?.length || 0,
+                    workingScript: outputData.workingScript,
                 };
             case PIPELINE_STEPS.STYLE_ANALYSIS:
                 return {
                     hasStyleProfile: outputData.hasStyleProfile,
+                    styleProfile: outputData.styleProfile,
                 };
             case PIPELINE_STEPS.SCRIPT_GENERATION:
                 return {
                     generatedScript: outputData.generatedScript,
                     wordCount: outputData.wordCount,
                     sectionsCount: outputData.sectionsCount,
+                    originalAnalysis: outputData.originalAnalysis,
+                    outlineA: outputData.outlineA,
+                    draftSections: outputData.draftSections,
                 };
             case PIPELINE_STEPS.SCENE_SPLITTING:
                 return {
@@ -218,6 +256,7 @@ export class PipelineProcessor extends WorkerHost {
                     hasEmotionalArc: !!outputData.conceptAnalysis?.emotionalArc,
                     characterPhrase: outputData.conceptAnalysis?.characterPhrase,
                     keyMomentCount: outputData.conceptAnalysis?.keyMoments?.length || 0,
+                    conceptAnalysis: outputData.conceptAnalysis,
                 };
             case PIPELINE_STEPS.VOICE_TTS:
                 return {
@@ -226,41 +265,46 @@ export class PipelineProcessor extends WorkerHost {
                     ttsVoice: outputData.ttsVoice,
                     ttsAudioUrls: outputData.ttsAudioUrls,
                     segmentCount: outputData.videoSegments?.length || 0,
+                    videoSegments: outputData.videoSegments,
                 };
             case PIPELINE_STEPS.VIDEO_DIRECTION:
                 return {
                     directionCount: outputData.directionNotes?.length || 0,
                     sampleTags: outputData.directionNotes?.[0]?.tags || "",
+                    directionNotes: outputData.directionNotes,
                 };
             case PIPELINE_STEPS.VEO_PROMPTS:
                 return {
-                    scenes: outputData.scenes, // now includes veoPrompt
+                    scenes: outputData.scenes,
                     veoPromptsGenerated: outputData.veoPromptsGenerated,
                     veoMode: outputData.veoMode,
                 };
             case PIPELINE_STEPS.ENTITY_EXTRACTION:
                 return {
                     entityCount: outputData.entities?.length || 0,
-                    entities: (outputData.entities || []).map((e) => ({
-                        name: e.name,
-                        type: e.type,
-                        count: e.count,
-                    })),
+                    entities: outputData.entities,
                 };
             case PIPELINE_STEPS.REFERENCE_PROMPTS:
                 return {
                     referencePromptCount: outputData.referencePrompts?.length || 0,
                     entityNames: (outputData.referencePrompts || []).map((r) => r.entityName),
+                    referencePromptsText: outputData.referencePromptsText,
+                    referencePrompts: outputData.referencePrompts,
                 };
             case PIPELINE_STEPS.SCENE_BUILDER_PROMPTS:
                 return {
                     sceneBuilderCount: outputData.sceneBuilderPrompts?.length || 0,
+                    sceneBuilderPromptsText: outputData.sceneBuilderPromptsText,
+                    sceneBuilderPrompts: outputData.sceneBuilderPrompts,
                 };
             case PIPELINE_STEPS.METADATA_SEO:
                 return {
                     hasTitle: !!outputData.youtubeTitle,
                     hasDescription: !!outputData.youtubeDescription,
                     hasThumbnail: !!outputData.thumbnailPrompt,
+                    youtubeTitle: outputData.youtubeTitle,
+                    youtubeDescription: outputData.youtubeDescription,
+                    thumbnailPrompt: outputData.thumbnailPrompt,
                 };
             case PIPELINE_STEPS.FINALIZE:
                 return {
@@ -306,7 +350,7 @@ export class PipelineProcessor extends WorkerHost {
             case PIPELINE_STEPS.SCENE_BUILDER_PROMPTS:
                 return this.stepSceneBuilderPrompts(productionId, userId, aiSettings, projectSettings, outputData);
             case PIPELINE_STEPS.METADATA_SEO:
-                return this.stepMetadataSeo(productionId, outputData);
+                return this.stepMetadataSeo(productionId, outputData, aiSettings, projectSettings);
             case PIPELINE_STEPS.FINALIZE:
                 return this.stepFinalize(productionId, outputData);
             default:
@@ -395,9 +439,10 @@ export class PipelineProcessor extends WorkerHost {
     ): Promise<ProductionOutputData> {
         this.logger.log(`[${productionId}] Step 2: Style analysis...`);
         // For now, just check if StyleA exists in project settings
-        const hasStyleProfile = !!projectSettings.styleA;
+        const styleProfile = projectSettings.styleA;
+        const hasStyleProfile = !!styleProfile;
         this.logger.log(`[${productionId}] Step 2: Style profile ${hasStyleProfile ? "found" : "not found"}`);
-        return { ...outputData, hasStyleProfile };
+        return { ...outputData, hasStyleProfile, styleProfile };
     }
 
     // ─────────────────────────────────────────────────────
@@ -459,6 +504,9 @@ export class PipelineProcessor extends WorkerHost {
             generatedScript: result.finalScript,
             wordCount: result.wordCount,
             sectionsCount: result.draftSections?.length || 0,
+            originalAnalysis: result.originalAnalysis,
+            outlineA: result.outlineA,
+            draftSections: result.draftSections,
         };
     }
 
@@ -853,21 +901,72 @@ export class PipelineProcessor extends WorkerHost {
     }
 
     // ─────────────────────────────────────────────────────
-    // Step 12: Metadata / SEO (placeholder for now)
+    // Step 12: Metadata / SEO — AI-generated title, description, thumbnail
     // ─────────────────────────────────────────────────────
 
     private async stepMetadataSeo(
         productionId: string,
         outputData: ProductionOutputData,
+        aiSettings: UserAISettings,
+        projectSettings: ProjectSettings,
     ): Promise<ProductionOutputData> {
-        this.logger.log(`[${productionId}] Step 12: Metadata/SEO (placeholder)...`);
-        // Future: generate YouTube title, description, thumbnail prompt
-        return {
-            ...outputData,
-            youtubeTitle: outputData.youtubeMetadata?.title || "",
-            youtubeDescription: "",
-            thumbnailPrompt: "",
-        };
+        this.logger.log(`[${productionId}] Step 12: Generating Metadata/SEO...`);
+
+        const script = outputData.generatedScript || outputData.workingScript || "";
+        const language = projectSettings.language || "vi";
+        const channelName = projectSettings.channelName || "";
+        const fallbackTitle = outputData.youtubeMetadata?.title || "";
+
+        if (!script) {
+            this.logger.warn(`[${productionId}] Step 12: No script found — using fallback metadata`);
+            return {
+                ...outputData,
+                youtubeTitle: fallbackTitle,
+                youtubeDescription: "",
+                thumbnailPrompt: "",
+            };
+        }
+
+        // Truncate script to first 3000 chars for prompt efficiency
+        const scriptExcerpt = script.substring(0, 3000);
+
+        const prompt = `You are a YouTube SEO expert. Based on the video script below, generate:
+1. A compelling YouTube TITLE (max 70 characters, includes main keyword)
+2. A YouTube DESCRIPTION (max 400 characters, hooks viewer, includes keywords)
+3. A THUMBNAIL PROMPT for AI image generation (describe a visually striking scene)[Language: ${language}][Channel: ${channelName || "General"}]
+
+Script excerpt:
+"""${scriptExcerpt}"""
+
+Respond ONLY with valid JSON (no markdown):
+{
+  "title": "...",
+  "description": "...",
+  "thumbnailPrompt": "..."
+}`;
+
+        try {
+            const result = await this.aiClientService.generate(aiSettings, prompt, { temperature: 0.7 });
+            const raw = result.text.replace(/```json|```/g, "").trim();
+            const parsed = JSON.parse(raw) as { title?: string; description?: string; thumbnailPrompt?: string };
+
+            const youtubeTitle = (parsed.title || fallbackTitle).substring(0, 100);
+            const youtubeDescription = (parsed.description || "").substring(0, 500);
+            const thumbnailPrompt = parsed.thumbnailPrompt || "";
+
+            this.logger.log(`[${productionId}] Step 12: SEO generated — title="${youtubeTitle.substring(0, 50)}..."`);
+
+            return { ...outputData, youtubeTitle, youtubeDescription, thumbnailPrompt };
+        } catch (err) {
+            // Non-blocking: pipeline continues with fallback values
+            this.logger.warn(`[${productionId}] Step 12: AI SEO generation failed (non-blocking): ${err.message}`);
+            return {
+                ...outputData,
+                youtubeTitle: fallbackTitle,
+                youtubeDescription: "",
+                thumbnailPrompt: "",
+            };
+        }
     }
 
     // ─────────────────────────────────────────────────────

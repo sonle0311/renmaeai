@@ -236,11 +236,15 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
                 scriptSource: outputData.scriptSource,
                 youtubeMetadata: outputData.youtubeMetadata,
                 workingScriptLength: outputData.workingScript?.length || 0,
+                workingScript: outputData.workingScript,
             };
         }
         case 2: {
             if (outputData.hasStyleProfile === undefined) return undefined;
-            return { hasStyleProfile: outputData.hasStyleProfile };
+            return {
+                hasStyleProfile: outputData.hasStyleProfile,
+                styleProfile: outputData.styleProfile,
+            };
         }
         case 3: {
             if (!outputData.generatedScript) return undefined;
@@ -248,6 +252,9 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
                 generatedScript: outputData.generatedScript,
                 wordCount: outputData.wordCount,
                 sectionsCount: outputData.sectionsCount,
+                originalAnalysis: outputData.originalAnalysis,
+                outlineA: outputData.outlineA,
+                draftSections: outputData.draftSections,
             };
         }
         case 4: {
@@ -265,6 +272,7 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
                 hasEmotionalArc: !!outputData.conceptAnalysis?.emotionalArc,
                 characterPhrase: outputData.conceptAnalysis?.characterPhrase,
                 keyMomentCount: outputData.conceptAnalysis?.keyMoments?.length || 0,
+                conceptAnalysis: outputData.conceptAnalysis,
             };
         }
         case 6: {
@@ -275,6 +283,7 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
                 ttsVoice: outputData.ttsVoice,
                 ttsAudioUrls: outputData.ttsAudioUrls,
                 segmentCount: outputData.videoSegments?.length || 0,
+                videoSegments: outputData.videoSegments,
             };
         }
         case 7: {
@@ -283,6 +292,7 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
             return {
                 directionCount: outputData.directionNotes?.length || 0,
                 sampleTags: outputData.directionNotes?.[0]?.tags || "",
+                directionNotes: outputData.directionNotes,
             };
         }
         case 8: {
@@ -298,11 +308,7 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
             if (!outputData.entities) return undefined;
             return {
                 entityCount: outputData.entities?.length || 0,
-                entities: (outputData.entities || []).map((e: any) => ({
-                    name: e.name,
-                    type: e.type,
-                    count: e.count,
-                })),
+                entities: outputData.entities,
             };
         }
         case 10: {
@@ -311,6 +317,8 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
             return {
                 referencePromptCount: outputData.referencePrompts?.length || 0,
                 entityNames: (outputData.referencePrompts || []).map((r: any) => r.entityName),
+                referencePromptsText: outputData.referencePromptsText,
+                referencePrompts: outputData.referencePrompts,
             };
         }
         case 11: {
@@ -318,6 +326,8 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
             if (!outputData.sceneBuilderPrompts) return undefined;
             return {
                 sceneBuilderCount: outputData.sceneBuilderPrompts?.length || 0,
+                sceneBuilderPromptsText: outputData.sceneBuilderPromptsText,
+                sceneBuilderPrompts: outputData.sceneBuilderPrompts,
             };
         }
         case 12: {
@@ -326,6 +336,9 @@ function buildStepOutput(stepNumber: number, outputData: any): Record<string, un
                 hasTitle: !!outputData.youtubeTitle,
                 hasDescription: !!outputData.youtubeDescription,
                 hasThumbnail: !!outputData.thumbnailPrompt,
+                youtubeTitle: outputData.youtubeTitle,
+                youtubeDescription: outputData.youtubeDescription,
+                thumbnailPrompt: outputData.thumbnailPrompt,
             };
         }
         case 13: {

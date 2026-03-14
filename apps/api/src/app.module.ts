@@ -15,10 +15,15 @@ import { QueueModule } from "./modules/queue/queue.module";
 import { WebhookModule } from "./modules/webhook/webhook.module";
 import { RealtimeModule } from "./modules/realtime/realtime.module";
 import { AiModule } from "./modules/ai/ai.module";
+import { PolarModule } from "./modules/polar/polar.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // In monorepo, look for .env in root (../../.env) first, then cwd
+      envFilePath: ['../../.env', '../../../.env', '.env'],
+    }),
 
     // BullMQ — Redis connection
     BullModule.forRootAsync({
@@ -54,6 +59,7 @@ import { AiModule } from "./modules/ai/ai.module";
     WebhookModule,
     RealtimeModule,
     AiModule,
+    PolarModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Save, Sparkles, Video, Paintbrush } from "lucide-react";
+import { Loader2, Save, Sparkles, Video, Paintbrush, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -158,13 +158,34 @@ export function ProjectSettingsForm({
         }
     }
 
+    async function handleDeleteProject() {
+        if (!confirm("Cảnh báo: Xóa dự án sẽ xóa toàn bộ video bên trong. Bạn có chắc chắn muốn xóa không?")) return;
+        
+        setSaving(true);
+        try {
+            const res = await fetch(`/api/proxy/projects/${projectId}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                toast.success("Đã xóa dự án thành công");
+                window.location.href = "/dashboard";
+            } else {
+                toast.error("Không thể xóa dự án (Dự án không tồn tại hoặc lỗi kết nối)");
+            }
+        } catch {
+            toast.error("Lỗi kết nối server");
+        } finally {
+            setSaving(false);
+        }
+    }
+
     return (
         <div className="space-y-6 max-w-2xl">
             {/* Channel & Language */}
-            <Card>
+            <Card className="bg-black/40 backdrop-blur-xl border-white/5 shadow-2xl shadow-cyan-900/10 hover:border-white/10 transition-colors">
                 <CardHeader>
-                    <CardTitle className="text-base">Kênh & Ngôn ngữ</CardTitle>
-                    <CardDescription>Cài đặt chung cho tất cả video trong project</CardDescription>
+                    <CardTitle className="text-base text-white">Kênh & Ngôn ngữ</CardTitle>
+                    <CardDescription className="text-slate-400">Cài đặt chung cho tất cả video trong project</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -236,10 +257,10 @@ export function ProjectSettingsForm({
             </Card>
 
             {/* Writing Style */}
-            <Card>
+            <Card className="bg-black/40 backdrop-blur-xl border-white/5 shadow-2xl shadow-cyan-900/10 hover:border-white/10 transition-colors">
                 <CardHeader>
-                    <CardTitle className="text-base">Phong cách viết</CardTitle>
-                    <CardDescription>AI sẽ viết script theo phong cách này</CardDescription>
+                    <CardTitle className="text-base text-white">Phong cách viết</CardTitle>
+                    <CardDescription className="text-slate-400">AI sẽ viết script theo phong cách này</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -312,13 +333,13 @@ export function ProjectSettingsForm({
             </Card>
 
             {/* Video AI Settings */}
-            <Card>
+            <Card className="bg-black/40 backdrop-blur-xl border-white/5 shadow-2xl shadow-cyan-900/10 hover:border-white/10 transition-colors">
                 <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Video className="h-4 w-4 text-purple-500" />
+                    <CardTitle className="text-base flex items-center gap-2 text-white">
+                        <Video className="h-4 w-4 text-cyan-400" />
                         Cài đặt Video AI
                     </CardTitle>
-                    <CardDescription>Chế độ tạo video và phong cách visual cho pipeline</CardDescription>
+                    <CardDescription className="text-slate-400">Chế độ tạo video và phong cách visual cho pipeline</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -426,24 +447,50 @@ export function ProjectSettingsForm({
                 </Alert>
             )}
 
-            <Button onClick={handleSave} disabled={saving} className="w-full">
+            <Button onClick={handleSave} disabled={saving} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all">
                 {saving ? (
                     <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Đang lưu...
                     </>
                 ) : saved ? (
                     <>
-                        <Sparkles className="h-4 w-4" />
+                        <Sparkles className="h-4 w-4 mr-2" />
                         Đã lưu!
                     </>
                 ) : (
                     <>
-                        <Save className="h-4 w-4" />
+                        <Save className="h-4 w-4 mr-2" />
                         Lưu cài đặt
                     </>
                 )}
             </Button>
+
+            {/* Danger Zone */}
+            <div className="mt-12 pt-8 border-t border-white/5">
+                <Card className="bg-red-950/20 border-red-900/30">
+                    <CardHeader>
+                        <CardTitle className="text-base text-red-500 flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            Khu vực nguy hiểm (Danger Zone)
+                        </CardTitle>
+                        <CardDescription className="text-red-400/80">
+                            Xóa toàn bộ dữ liệu của dự án này, bao gồm cả các video bên trong. Hành động này không thể hoàn tác.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleDeleteProject} 
+                            disabled={saving} 
+                            className="bg-red-600/80 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)] transition-all"
+                        >
+                            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                            Xóa Dự án vĩnh viễn
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }

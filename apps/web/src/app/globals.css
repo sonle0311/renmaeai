@@ -2,9 +2,253 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   RENMAE_AI DESIGN SYSTEM
+   Three-Layer Token Architecture (Primitive → Semantic → Component)
+   Color Space: OKLCH (perceptually uniform)
+   Theme: Premium Dark SaaS — Cyan + Electric Violet
+   ============================================================ */
+
+/* ==========================================================
+   LAYER 1 — PRIMITIVE TOKENS
+   Raw values with no semantic meaning.
+   Change these to rebrand the entire product.
+   ========================================================== */
+
+@layer base {
+  :root {
+    /* ── Color Primitives ── */
+
+    /* Neutral Scale (Deep Blue tinted) */
+    --p-neutral-950: oklch(0.08 0.01 250);   /* #050505 equiv — darkest */
+    --p-neutral-900: oklch(0.10 0.01 250);   /* sidebar bg */
+    --p-neutral-850: oklch(0.12 0.015 250);  /* #0a0a0c equiv — surface */
+    --p-neutral-800: oklch(0.15 0.015 250);  /* card bg */
+    --p-neutral-750: oklch(0.17 0.015 250);  /* #0f0f0f equiv — raised */
+    --p-neutral-700: oklch(0.18 0.02 250);   /* muted bg */
+    --p-neutral-600: oklch(0.22 0.03 250);   /* borders */
+    --p-neutral-500: oklch(0.25 0.03 250);   /* subtle borders */
+    --p-neutral-400: oklch(0.45 0.02 250);   /* disabled text */
+    --p-neutral-300: oklch(0.55 0.02 250);   /* placeholder */
+    --p-neutral-200: oklch(0.65 0.02 250);   /* muted text */
+    --p-neutral-100: oklch(0.85 0.01 250);   /* secondary text */
+    --p-neutral-50: oklch(0.95 0.01 250);    /* body text */
+    --p-neutral-0: oklch(0.98 0.01 250);     /* bright text */
+
+    /* Primary: Electric Violet */
+    --p-violet-400: oklch(0.75 0.20 285);
+    --p-violet-500: oklch(0.70 0.22 285);
+    --p-violet-600: oklch(0.65 0.25 285);    /* ⭐ primary */
+    --p-violet-700: oklch(0.55 0.25 285);
+    --p-violet-800: oklch(0.45 0.20 285);
+
+    /* Accent: Cyan */
+    --p-cyan-300: oklch(0.85 0.15 195);
+    --p-cyan-400: oklch(0.80 0.18 195);
+    --p-cyan-500: oklch(0.75 0.15 200);      /* ⭐ accent */
+    --p-cyan-600: oklch(0.65 0.15 200);
+    --p-cyan-700: oklch(0.55 0.15 200);
+
+    /* Blue (gradient partner) */
+    --p-blue-400: oklch(0.72 0.18 250);
+    --p-blue-500: oklch(0.65 0.18 250);
+    --p-blue-600: oklch(0.55 0.18 250);
+    --p-blue-700: oklch(0.48 0.15 250);
+    --p-blue-900: oklch(0.30 0.08 250);
+
+    /* Status Colors */
+    --p-green-400: oklch(0.80 0.18 155);
+    --p-green-500: oklch(0.72 0.20 155);
+    --p-green-600: oklch(0.60 0.20 155);
+    --p-yellow-400: oklch(0.85 0.15 85);
+    --p-yellow-500: oklch(0.80 0.18 85);
+    --p-red-400: oklch(0.65 0.22 30);
+    --p-red-500: oklch(0.55 0.22 30);
+    --p-red-600: oklch(0.50 0.18 30);
+    --p-orange-400: oklch(0.75 0.15 55);
+    --p-orange-500: oklch(0.68 0.18 55);
+    --p-purple-400: oklch(0.72 0.20 310);
+    --p-purple-500: oklch(0.65 0.22 310);
+    --p-indigo-400: oklch(0.68 0.18 275);
+    --p-indigo-500: oklch(0.60 0.20 275);
+
+    /* Pure */
+    --p-white: oklch(1 0 0);
+    --p-black: oklch(0 0 0);
+
+    /* ── Spacing Scale (4px base) ── */
+    --space-0: 0;
+    --space-px: 1px;
+    --space-0-5: 0.125rem;  /* 2px */
+    --space-1: 0.25rem;     /* 4px */
+    --space-1-5: 0.375rem;  /* 6px */
+    --space-2: 0.5rem;      /* 8px */
+    --space-3: 0.75rem;     /* 12px */
+    --space-4: 1rem;        /* 16px */
+    --space-5: 1.25rem;     /* 20px */
+    --space-6: 1.5rem;      /* 24px */
+    --space-8: 2rem;        /* 32px */
+    --space-10: 2.5rem;     /* 40px */
+    --space-12: 3rem;       /* 48px */
+    --space-16: 4rem;       /* 64px */
+    --space-20: 5rem;       /* 80px */
+    --space-24: 6rem;       /* 96px */
+
+    /* ── Typography Scale ── */
+    --text-xs: 0.75rem;     /* 12px */
+    --text-sm: 0.875rem;    /* 14px */
+    --text-base: 1rem;      /* 16px */
+    --text-lg: 1.125rem;    /* 18px */
+    --text-xl: 1.25rem;     /* 20px */
+    --text-2xl: 1.5rem;     /* 24px */
+    --text-3xl: 1.875rem;   /* 30px */
+    --text-4xl: 2.25rem;    /* 36px */
+    --text-5xl: 3rem;       /* 48px */
+    --text-6xl: 3.75rem;    /* 60px */
+    --text-7xl: 4.5rem;     /* 72px */
+
+    /* ── Border Radius ── */
+    --radius-none: 0;
+    --radius-sm: 0.25rem;   /* 4px */
+    --radius-md: 0.375rem;  /* 6px */
+    --radius-default: 0.5rem; /* 8px */
+    --radius-lg: 0.75rem;   /* 12px */
+    --radius-xl: 1rem;      /* 16px */
+    --radius-2xl: 1.5rem;   /* 24px */
+    --radius-3xl: 2rem;     /* 32px */
+    --radius-full: 9999px;
+
+    /* ── Shadows (dark-optimized) ── */
+    --shadow-none: none;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-default: 0 1px 3px rgb(0 0 0 / 0.4), 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px rgb(0 0 0 / 0.3), 0 2px 4px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px rgb(0 0 0 / 0.3), 0 4px 6px rgb(0 0 0 / 0.2);
+    --shadow-xl: 0 20px 25px rgb(0 0 0 / 0.3), 0 8px 10px rgb(0 0 0 / 0.2);
+    --shadow-2xl: 0 25px 50px rgb(0 0 0 / 0.5);
+    --shadow-inner: inset 0 2px 4px rgb(0 0 0 / 0.3);
+    --shadow-glow-cyan: 0 0 30px oklch(0.75 0.15 200 / 0.3);
+    --shadow-glow-violet: 0 0 30px oklch(0.65 0.25 285 / 0.3);
+
+    /* ── Motion / Duration ── */
+    --duration-75: 75ms;
+    --duration-100: 100ms;
+    --duration-150: 150ms;
+    --duration-200: 200ms;
+    --duration-300: 300ms;
+    --duration-500: 500ms;
+    --duration-700: 700ms;
+    --duration-1000: 1000ms;
+    --duration-fast: var(--duration-150);
+    --duration-normal: var(--duration-200);
+    --duration-slow: var(--duration-300);
+
+    /* ── Z-Index Scale ── */
+    --z-base: 0;
+    --z-raised: 10;
+    --z-dropdown: 20;
+    --z-sticky: 30;
+    --z-overlay: 40;
+    --z-modal: 50;
+    --z-popover: 60;
+    --z-tooltip: 70;
+  }
+}
+
+/* ==========================================================
+   LAYER 2 — SEMANTIC TOKENS
+   Purpose-based aliases that reference primitives.
+   Change these for theme variations (light/dark).
+   ========================================================== */
+
+:root {
+  --radius: var(--radius-xl);
+
+  /* ── Backgrounds ── */
+  --background: var(--p-neutral-950);
+  --foreground: var(--p-neutral-0);
+
+  /* ── Surface ── */
+  --surface: var(--p-neutral-850);
+  --surface-raised: var(--p-neutral-750);
+  --surface-overlay: var(--p-neutral-800);
+
+  /* ── Card ── */
+  --card: var(--p-neutral-800);
+  --card-foreground: var(--p-neutral-0);
+
+  /* ── Popover ── */
+  --popover: var(--p-neutral-800);
+  --popover-foreground: var(--p-neutral-0);
+
+  /* ── Primary: Electric Violet ── */
+  --primary: var(--p-violet-600);
+  --primary-hover: var(--p-violet-500);
+  --primary-active: var(--p-violet-700);
+  --primary-foreground: var(--p-white);
+
+  /* ── Secondary ── */
+  --secondary: oklch(0.25 0.05 250);
+  --secondary-foreground: var(--p-neutral-0);
+
+  /* ── Muted ── */
+  --muted: var(--p-neutral-700);
+  --muted-foreground: var(--p-neutral-200);
+
+  /* ── Accent: Deep Violet ── */
+  --accent: oklch(0.22 0.05 280);
+  --accent-foreground: var(--p-neutral-0);
+
+  /* ── Status (Semantic) ── */
+  --success: var(--p-green-500);
+  --success-foreground: var(--p-white);
+  --warning: var(--p-yellow-500);
+  --warning-foreground: var(--p-black);
+  --info: var(--p-cyan-500);
+  --info-foreground: var(--p-white);
+  --destructive: var(--p-red-500);
+  --destructive-foreground: var(--p-neutral-0);
+
+  /* ── Borders & Input ── */
+  --border: var(--p-neutral-500);
+  --border-subtle: oklch(0.25 0.03 250 / 0.5);
+  --input: var(--p-neutral-500);
+  --ring: var(--p-violet-600);
+
+  /* ── Charts ── */
+  --chart-1: var(--p-violet-600);
+  --chart-2: var(--p-cyan-500);
+  --chart-3: oklch(0.85 0.1 120);
+  --chart-4: var(--p-purple-500);
+  --chart-5: var(--p-orange-500);
+
+  /* ── Sidebar ── */
+  --sidebar: var(--p-neutral-900);
+  --sidebar-foreground: var(--p-neutral-0);
+  --sidebar-primary: var(--p-violet-600);
+  --sidebar-primary-foreground: var(--p-white);
+  --sidebar-accent: oklch(0.18 0.05 280);
+  --sidebar-accent-foreground: var(--p-neutral-0);
+  --sidebar-border: oklch(0.2 0.03 250);
+  --sidebar-ring: var(--p-violet-600);
+
+  /* ── Brand Gradient (Cyan → Blue) ── */
+  --gradient-brand: linear-gradient(to right, var(--p-cyan-400), var(--p-blue-500), var(--p-indigo-500));
+  --gradient-cta: linear-gradient(to right, var(--p-cyan-500), var(--p-blue-600));
+  --gradient-glow: linear-gradient(to bottom, oklch(0.30 0.08 200 / 0.2), transparent);
+}
+
+/* ==========================================================
+   TAILWIND THEME BRIDGE
+   Maps semantic tokens → Tailwind utility classes
+   ========================================================== */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -17,6 +261,12 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -39,58 +289,159 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-outfit);
   --font-mono: var(--font-geist-mono);
 }
 
-/* ==========================================
-   Dark theme by default — SaaS aesthetic
-   Using Zinc palette for dark mode
-   ========================================== */
-
-:root {
-  --radius: 0.625rem;
-  /* Dark mode as default */
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.17 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.17 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.623 0.214 259);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.22 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.22 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.22 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.274 0 0);
-  --input: oklch(0.274 0 0);
-  --ring: oklch(0.623 0.214 259);
-  --chart-1: oklch(0.623 0.214 259);
-  --chart-2: oklch(0.6 0.2 160);
-  --chart-3: oklch(0.7 0.15 50);
-  --chart-4: oklch(0.65 0.2 300);
-  --chart-5: oklch(0.7 0.2 30);
-  --sidebar: oklch(0.12 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.623 0.214 259);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.274 0 0);
-  --sidebar-ring: oklch(0.623 0.214 259);
-}
+/* ==========================================================
+   BASE STYLES
+   ========================================================== */
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, sans-serif;
+  }
+}
+
+/* ==========================================================
+   KEYFRAMES — Shared Animations
+   ========================================================== */
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--p-cyan-500); opacity: 1; }
+  50% { box-shadow: 0 0 20px 4px var(--p-cyan-500); opacity: 0.7; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* ==========================================================
+   UTILITIES — Design System Helpers
+   ========================================================== */
+
+@layer utilities {
+  /* ── Typography ── */
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .font-inter {
+    font-family: var(--font-inter);
+  }
+
+  /* ── Premium Backgrounds ── */
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, var(--p-neutral-0) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--p-neutral-0) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.03;
+  }
+
+  .bg-aurora {
+    background:
+      radial-gradient(circle at 50% -20%, oklch(from var(--p-violet-600) l c h / 0.15), transparent 70%),
+      radial-gradient(circle at 0% 100%, oklch(from var(--p-cyan-500) l c h / 0.1), transparent 50%),
+      radial-gradient(circle at 100% 100%, oklch(from var(--p-violet-600) l c h / 0.1), transparent 50%);
+  }
+
+  /* ── Glossy Border (Glassmorphism) ── */
+  .glossy-border {
+    position: relative;
+  }
+
+  .glossy-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2), transparent, rgba(255, 255, 255, 0.05));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── Noise Texture ── */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* ── Custom Scrollbar ── */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--p-neutral-500);
+    border-radius: var(--radius-full);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--p-violet-600);
+  }
+
+  /* ── Animation Utilities ── */
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-fade-in {
+    animation: fade-in var(--duration-300) ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left var(--duration-300) ease-out;
+  }
+
+  /* ── Surface Utilities (replaces hardcoded #hex) ── */
+  .bg-surface {
+    background-color: var(--surface);
+  }
+
+  .bg-surface-raised {
+    background-color: var(--surface-raised);
+  }
+
+  .bg-surface-overlay {
+    background-color: var(--surface-overlay);
   }
 }

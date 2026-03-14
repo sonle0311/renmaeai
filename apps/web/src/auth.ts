@@ -35,10 +35,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     },
                 });
                 if (dbUser) {
-                    const user = session.user as unknown as Record<string, unknown>;
-                    user.role = dbUser.role;
-                    user.subscriptionTier = dbUser.subscriptionTier;
-                    user.quota = {
+                    session.user.role = dbUser.role as "USER" | "ADMIN";
+                    session.user.subscriptionTier = dbUser.subscriptionTier;
+                    session.user.quota = {
                         video: {
                             used: dbUser.usedVideoCount,
                             limit: dbUser.monthlyVideoQuota,
@@ -48,7 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             limit: dbUser.monthlyMinuteQuota,
                         },
                     };
-                    user.maxConcurrentSlots = dbUser.maxConcurrentSlots;
+                    session.user.maxConcurrentSlots = dbUser.maxConcurrentSlots;
                 }
             }
             return session;

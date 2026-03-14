@@ -38,7 +38,14 @@ export function CreateProductionForm({
 }: {
     projectId: string;
     projectSettings?: Record<string, unknown>;
-    onCreated?: () => void;
+    onCreated?: (newProduction: {
+        id: string;
+        title: string;
+        status: "QUEUED";
+        currentStep: number;
+        mediaGeneration: boolean;
+        createdAt: string;
+    }) => void;
 }) {
     const defaultLang = (projectSettings?.language as string) || "vi";
 
@@ -88,7 +95,15 @@ export function CreateProductionForm({
             }
 
             toast.success("Đã tạo video, đang xử lý...");
-            onCreated?.();
+            const created = await res.json();
+            onCreated?.({
+                id: created.id,
+                title: body.title || "Video mới",
+                status: "QUEUED",
+                currentStep: 0,
+                mediaGeneration: body.mediaGeneration ?? true,
+                createdAt: new Date().toISOString(),
+            });
         } catch {
             setError("Không kết nối được server");
             toast.error("Không kết nối được server");

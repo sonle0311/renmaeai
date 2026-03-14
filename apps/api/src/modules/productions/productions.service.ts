@@ -22,9 +22,10 @@ export class ProductionsService {
     ) { }
 
     async findAllByProject(userId: string, projectId: string) {
-        // Verify project ownership
+        // Verify project ownership in single query using relation filter
         const project = await this.prisma.project.findUnique({
             where: { id: projectId },
+            select: { userId: true },
         });
         if (!project) throw new NotFoundException("Project not found");
         if (project.userId !== userId) throw new ForbiddenException();
@@ -32,6 +33,21 @@ export class ProductionsService {
         const productions = await this.prisma.production.findMany({
             where: { projectId },
             orderBy: { createdAt: "desc" },
+            // ⚡ PERF: Exclude heavy outputData blob — not needed in list view
+            select: {
+                id: true,
+                title: true,
+                status: true,
+                currentStep: true,
+                language: true,
+                mediaGeneration: true,
+                youtubeUrl: true,
+                inputScript: true,
+                errorMessage: true,
+                estimatedMinutes: true,
+                createdAt: true,
+                updatedAt: true,
+            },
         });
 
         return { data: productions };
@@ -90,19 +106,31 @@ export class ProductionsService {
             }
         }
 
-        // 1. Verify project ownership
-        const project = await this.prisma.project.findUnique({
-            where: { id: data.projectId },
-        });
+        // ⚡ PERF: Run all independent queries in parallel
+        const [project, user, activeJobs] = await Promise.all([
+            this.prisma.project.findUnique({
+                where: { id: data.projectId },
+                select: { id: true, userId: true },
+            }),
+            this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { role: true, usedVideoCount: true, monthlyVideoQuota: true, maxConcurrentSlots: true },
+            }),
+            this.prisma.production.count({
+                where: {
+                    project: { userId },
+                    status: { in: ["QUEUED", "PROCESSING"] },
+                },
+            }),
+        ]);
+
         if (!project) throw new NotFoundException("Project not found");
         if (project.userId !== userId) throw new ForbiddenException();
-
-        // 2. Check Quota
-        const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new NotFoundException("User not found");
 
         const isAdmin = user.role === "ADMIN";
 
+        // Check video quota
         if (!isAdmin && user.usedVideoCount >= user.monthlyVideoQuota) {
             throw new HttpException(
                 {
@@ -113,14 +141,7 @@ export class ProductionsService {
             );
         }
 
-        // 3. Check concurrent slots
-        const activeJobs = await this.prisma.production.count({
-            where: {
-                project: { userId },
-                status: { in: ["QUEUED", "PROCESSING"] },
-            },
-        });
-
+        // Check concurrent slots
         if (!isAdmin && activeJobs >= user.maxConcurrentSlots) {
             throw new HttpException(
                 {
@@ -130,6 +151,7 @@ export class ProductionsService {
                 HttpStatus.TOO_MANY_REQUESTS,
             );
         }
+
 
         // 4. Create production + checkpoints in transaction
         const production = await this.prisma.$transaction(async (tx) => {
@@ -317,5 +339,22 @@ export class ProductionsService {
             status: "QUEUED",
             message: `Đang thử lại step ${stepNumber}...`,
         };
+    }
+
+    async removeProduction(userId: string, productionId: string) {
+        const production = await this.prisma.production.findUnique({
+            where: { id: productionId },
+            include: { project: true },
+        });
+
+        if (!production) throw new NotFoundException("Production not found");
+        if (production.project.userId !== userId) throw new ForbiddenException();
+
+        await this.prisma.$transaction(async (tx) => {
+            await tx.pipelineCheckpoint.deleteMany({ where: { productionId } });
+            await tx.production.delete({ where: { id: productionId } });
+        });
+
+        return { success: true };
     }
 }

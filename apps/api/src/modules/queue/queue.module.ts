@@ -16,6 +16,7 @@ import { EntityExtractionService } from "../pipeline/entity-extraction.service";
 import { ReferencePromptService } from "../pipeline/reference-prompt.service";
 import { SceneBuilderPromptService } from "../pipeline/scene-builder-prompt.service";
 import { VideoSegmentService } from "../pipeline/video-segment.service";
+import { AiClientService } from "../ai/ai-client.service";
 
 @Module({
     imports: [

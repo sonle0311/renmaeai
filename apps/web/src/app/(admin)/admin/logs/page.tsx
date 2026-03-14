@@ -1,11 +1,10 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { ScrollText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
+
+export const metadata = { title: "Audit Logs — Admin" };
 
 const ACTION_FILTERS = [
     { value: "", label: "Tất cả" },
@@ -19,20 +18,11 @@ export default async function AdminLogsPage({
 }: {
     searchParams: Promise<{ page?: string; action?: string }>;
 }) {
-    const session = await auth();
-    if (!session?.user) redirect("/login");
-
-    const dbUser = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { role: true },
-    });
-    if (dbUser?.role !== "ADMIN") redirect("/dashboard");
-
+    // ✅ No role check needed — handled by (admin)/layout.tsx
     const params = await searchParams;
     const page = parseInt(params.page || "1");
     const pageSize = 50;
     const actionFilter = params.action;
-
     const where = actionFilter ? { action: actionFilter } : {};
 
     const [logs, total] = await Promise.all([
@@ -49,11 +39,14 @@ export default async function AdminLogsPage({
     const totalPages = Math.ceil(total / pageSize);
 
     return (
-        <div className="p-8 space-y-6">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-                <ScrollText className="h-6 w-6 text-primary" />
-                Audit Logs
-            </h1>
+        <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-xl font-bold flex items-center gap-2 text-white">
+                    <ScrollText className="h-5 w-5 text-amber-400" />
+                    Audit Logs
+                </h1>
+                <span className="text-sm text-slate-500">{total} entries</span>
+            </div>
 
             {/* Filters */}
             <div className="flex gap-2 flex-wrap">
@@ -63,6 +56,10 @@ export default async function AdminLogsPage({
                         href={`/admin/logs${value ? `?action=${value}` : ""}`}
                         variant={(actionFilter || "") === value ? "default" : "outline"}
                         size="sm"
+                        className={(actionFilter || "") === value
+                            ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                            : "border-white/10 text-slate-400 hover:text-white"
+                        }
                     >
                         {label}
                     </LinkButton>
@@ -70,44 +67,32 @@ export default async function AdminLogsPage({
             </div>
 
             {/* Table */}
-            <Card>
+            <Card className="bg-white/[0.03] border-white/8">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-border">
-                                    <th className="text-left px-4 py-3 text-sm text-muted-foreground font-medium">
-                                        Thời gian
-                                    </th>
-                                    <th className="text-left px-4 py-3 text-sm text-muted-foreground font-medium">
-                                        User
-                                    </th>
-                                    <th className="text-left px-4 py-3 text-sm text-muted-foreground font-medium">
-                                        Action
-                                    </th>
-                                    <th className="text-left px-4 py-3 text-sm text-muted-foreground font-medium">
-                                        Mô tả
-                                    </th>
+                                <tr className="border-b border-white/5">
+                                    {["Thời gian", "User", "Action", "Mô tả"].map((h) => (
+                                        <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {logs.map((log) => (
-                                    <tr
-                                        key={log.id}
-                                        className="border-b border-border/50 hover:bg-muted/30 transition-colors"
-                                    >
-                                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                    <tr key={log.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                                             {new Date(log.createdAt).toLocaleString("vi-VN")}
                                         </td>
-                                        <td className="px-4 py-3 text-sm">
+                                        <td className="px-4 py-3 text-sm text-slate-300">
                                             {log.user?.email || "System"}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <Badge variant="secondary" className="text-xs">
+                                            <Badge variant="secondary" className="text-xs font-mono">
                                                 {log.action}
                                             </Badge>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-muted-foreground max-w-md truncate">
+                                        <td className="px-4 py-3 text-sm text-slate-400 max-w-md truncate">
                                             {log.description}
                                         </td>
                                     </tr>
@@ -120,29 +105,18 @@ export default async function AdminLogsPage({
 
             {/* Pagination */}
             <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                    Hiển thị {(page - 1) * pageSize + 1}-
-                    {Math.min(page * pageSize, total)} / {total} dòng
+                <p className="text-sm text-slate-500">
+                    {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} / {total} dòng
                 </p>
                 <div className="flex gap-2">
                     {page > 1 && (
-                        <LinkButton
-                            href={`/admin/logs?page=${page - 1}${actionFilter ? `&action=${actionFilter}` : ""}`}
-                            variant="outline"
-                            size="sm"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                            Trước
+                        <LinkButton href={`/admin/logs?page=${page - 1}${actionFilter ? `&action=${actionFilter}` : ""}`} variant="outline" size="sm" className="border-white/10 text-slate-400">
+                            <ChevronLeft className="h-4 w-4" /> Trước
                         </LinkButton>
                     )}
                     {page < totalPages && (
-                        <LinkButton
-                            href={`/admin/logs?page=${page + 1}${actionFilter ? `&action=${actionFilter}` : ""}`}
-                            variant="outline"
-                            size="sm"
-                        >
-                            Sau
-                            <ChevronRight className="h-4 w-4" />
+                        <LinkButton href={`/admin/logs?page=${page + 1}${actionFilter ? `&action=${actionFilter}` : ""}`} variant="outline" size="sm" className="border-white/10 text-slate-400">
+                            Sau <ChevronRight className="h-4 w-4" />
                         </LinkButton>
                     )}
                 </div>

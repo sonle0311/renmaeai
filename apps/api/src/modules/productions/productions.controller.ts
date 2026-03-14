@@ -8,6 +8,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    Delete,
 } from "@nestjs/common";
 import { ProductionsService } from "./productions.service";
 import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
@@ -58,5 +59,11 @@ export class ProductionsController {
         @Param("stepNumber") stepNumber: string,
     ) {
         return this.productionsService.retryStep(req.user.id, id, parseInt(stepNumber, 10));
+    }
+
+    @Delete("productions/:id")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(@Req() req: any, @Param("id") id: string) {
+        await this.productionsService.removeProduction(req.user.id, id);
     }
 }

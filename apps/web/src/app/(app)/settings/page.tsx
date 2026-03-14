@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AISettingsForm } from "@/components/settings/ai-settings-form";
+import { PageContainer, PageHeader } from "@/components/layout/page-components";
 
 export default async function SettingsPage() {
     const session = await auth();
@@ -67,59 +68,68 @@ export default async function SettingsPage() {
     }
 
     return (
-        <div className="p-8 space-y-6">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Settings className="h-6 w-6 text-primary" />
-                Cài đặt
-            </h1>
-
-            {/* Quota Info */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Crown className="h-5 w-5 text-primary" />
-                        Quota hiện tại
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-1">Gói cước</p>
-                            <Badge variant="secondary" className="text-sm">
-                                {user?.subscriptionTier}
-                            </Badge>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground flex items-center gap-1">
-                                    <Film className="h-3.5 w-3.5" /> Video
-                                </span>
-                                <span className="font-medium">
-                                    {user?.usedVideoCount}/{user?.monthlyVideoQuota}
-                                </span>
-                            </div>
-                            <Progress value={videoPercent} className="h-2" />
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground flex items-center gap-1">
-                                    <Clock className="h-3.5 w-3.5" /> Phút
-                                </span>
-                                <span className="font-medium">
-                                    {user?.usedMinuteCount}/{user?.monthlyMinuteQuota}
-                                </span>
-                            </div>
-                            <Progress value={minutePercent} className="h-2" />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* BYOK Settings — Interactive Client Component */}
-            <AISettingsForm
-                initialSettings={aiSettings}
-                saveAction={updateSettings}
+        <PageContainer className="max-w-5xl">
+            <PageHeader
+                icon={<Settings className="h-6 w-6 text-primary" />}
+                title="Cài đặt"
+                description="Quản lý quota, API keys và tùy chỉnh AI"
             />
-        </div>
+
+            {/* Two-column layout on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+                {/* Left: Quota Info (compact sidebar) */}
+                <div className="space-y-4">
+                    <Card className="bg-white/[0.03] border-white/5">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <Crown className="h-4 w-4 text-primary" />
+                                Gói cước
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Badge variant="secondary" className="text-xs">
+                                    {user?.subscriptionTier}
+                                </Badge>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground flex items-center gap-1">
+                                            <Film className="h-3 w-3" /> Video
+                                        </span>
+                                        <span className="font-medium text-white">
+                                            {user?.usedVideoCount}/{user?.monthlyVideoQuota}
+                                        </span>
+                                    </div>
+                                    <Progress value={videoPercent} className="h-1.5" />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground flex items-center gap-1">
+                                            <Clock className="h-3 w-3" /> Phút
+                                        </span>
+                                        <span className="font-medium text-white">
+                                            {user?.usedMinuteCount}/{user?.monthlyMinuteQuota}
+                                        </span>
+                                    </div>
+                                    <Progress value={minutePercent} className="h-1.5" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right: BYOK Settings (main content) */}
+                <div>
+                    <AISettingsForm
+                        initialSettings={aiSettings}
+                        saveAction={updateSettings}
+                    />
+                </div>
+            </div>
+        </PageContainer>
     );
 }

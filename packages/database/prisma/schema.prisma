@@ -148,6 +148,8 @@ model Production {
 
   @@index([projectId])
   @@index([status])
+  // Compound index for concurrent slot count query: WHERE projectId=x AND status IN ('QUEUED','PROCESSING')
+  @@index([projectId, status])
   @@map("productions")
 }
 
@@ -177,6 +179,8 @@ model PipelineCheckpoint {
 
   @@unique([productionId, stepNumber])
   @@index([productionId])
+  // Compound index for pending step count query: WHERE productionId=x AND status IN ('PENDING','PROCESSING')
+  @@index([productionId, status])
   @@map("pipeline_checkpoints")
 }
 

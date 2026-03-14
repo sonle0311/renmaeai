@@ -7,13 +7,23 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import {
     Youtube, Palette, FileText, Scissors,
     Video, Mic, CheckCircle, Loader2, XCircle,
     Clock, SkipForward, Copy, Check, ChevronRight,
-    Volume2, Sparkles, RefreshCw,
+    Volume2, Sparkles, RefreshCw, Maximize2,
     Brain, Clapperboard, Users, Image, LayoutGrid, BarChart3,
 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { StepVisualizerRouter } from "./step-visualizer";
 
 const STEP_ICONS: Record<number, React.ReactNode> = {
     1: <Youtube className="h-4 w-4" />,
@@ -461,27 +471,29 @@ export function ProductionProgress({
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                                 {/* Per-step retry button for failed or skipped steps */}
                                 {(step.status === "failed" || step.status === "skipped" || step.status === "completed") && (
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className={`h-6 px-2 text-xs gap-1 ${step.status === "failed"
-                                            ? "text-red-400 hover:text-red-300"
-                                            : "text-muted-foreground/50 hover:text-foreground"
-                                            }`}
+                                        className={cn(
+                                            "h-7 px-2.5 text-[10px] gap-1.5 rounded-md font-semibold uppercase tracking-wider transition-all",
+                                            step.status === "failed"
+                                                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20"
+                                                : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 shadow-sm"
+                                        )}
                                         disabled={retryingStep === step.stepNumber}
                                         onClick={() => handleRetryStep(step.stepNumber)}
                                     >
                                         {retryingStep === step.stepNumber
-                                            ? <Loader2 className="h-3 w-3 animate-spin" />
-                                            : <RefreshCw className="h-3 w-3" />
+                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            : <RefreshCw className="h-3.5 w-3.5" />
                                         }
-                                        {step.status === "failed" ? "Thử lại" : step.status === "skipped" ? "Chạy" : ""}
+                                        {step.status === "failed" ? "Thử lại" : step.status === "skipped" ? "Chạy" : "Gen lại"}
                                     </Button>
                                 )}
-                                <StatusIcon status={step.status} />
+                                <div className="p-1.5 bg-black/40 rounded-md border border-white/5">{<StatusIcon status={step.status} />}</div>
                             </div>
                         </div>
 
@@ -496,11 +508,42 @@ export function ProductionProgress({
 
                         {/* Step output — shown when completed and has output */}
                         {step.status === "completed" && step.output && (
-                            <div className="px-3 py-2 ml-7 border-l-2 border-green-500/20">
+                            <div className="px-3 py-3 ml-7 mt-2 border border-white/5 bg-white/[0.02] rounded-xl flex flex-col gap-3">
                                 <StepOutputRenderer
                                     stepNumber={step.stepNumber}
                                     output={step.output}
                                 />
+
+                                {/* AI Details Modal */}
+                                <Dialog>
+                                    <DialogTrigger
+                                        render={
+                                            <button className="mt-1 text-[10px] text-slate-500 hover:text-cyan-400 font-medium uppercase tracking-widest cursor-pointer transition-colors flex items-center gap-1.5 select-none w-fit group/btn">
+                                                <div className="p-1 rounded bg-white/5 group-hover/btn:bg-cyan-500/20 transition-colors">
+                                                    <Maximize2 className="h-3 w-3 group-hover/btn:scale-110 transition-transform" />
+                                                </div>
+                                                Xem chi tiết thông số AI
+                                            </button>
+                                        }
+                                    />
+                                    <DialogContent className="w-[95vw] sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] overflow-hidden flex flex-col bg-background/95 border-white/10 shadow-2xl backdrop-blur-3xl p-0 gap-0">
+                                        <DialogHeader className="px-6 py-5 border-b border-white/5 space-y-1.5 bg-white/[0.02]">
+                                            <DialogTitle className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                                                <Brain className="h-5 w-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                                                Chi Tiết Tham Số AI (Raw Data)
+                                            </DialogTitle>
+                                            <DialogDescription className="text-[13px] text-slate-400">
+                                                Toàn bộ kết quả xử lý và tham số đầu ra của bước hiện tại từ hệ thống Pipeline.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative">
+                                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-black/20 z-0"></div>
+                                            <div className="relative z-10 w-full">
+                                                <StepVisualizerRouter stepNumber={step.stepNumber} output={step.output} />
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         )}
                     </div>

@@ -55,10 +55,14 @@ export interface ProductionOutputData {
     youtubeMetadata?: { videoId: string; title: string; thumbnail?: string };
     // Step 2 (Style Analysis)
     hasStyleProfile?: boolean;
+    styleProfile?: any;
     // Step 3 (Script Generation)
     generatedScript?: string;
     wordCount?: number;
     sectionsCount?: number;
+    originalAnalysis?: any;
+    outlineA?: any;
+    draftSections?: any;
     // Step 4 (Scene Splitting)
     scenes?: SceneItem[];
     totalScenes?: number;
